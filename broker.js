@@ -106,7 +106,7 @@ aedes.on('publish', function (packet, client) { //Когда кто-то пуб�
         destinationName: packet.topic, 
         payload: packet.payload.toString()
     }
-    toServerScoket.send(JSON.stringify(dataBuffer)) //данные отправляем через веб сокет на сервер в интернете
+    // toServerScoket.send(JSON.stringify(dataBuffer)) //данные отправляем через веб сокет на сервер в интернете
     
     // console.log('message from client', client.id)
 
