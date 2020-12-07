@@ -26,36 +26,41 @@ app.use(express.static('client/dist'));
 //----------------------------------------------------
 
   // 'ws://localhost:3000'
-// const toServerScoket = new WebSocket('ws://greenzoneweb.herokuapp.com/') //Формирование сокета к серверу в интернете
+const toServerScoket = new WebSocket('ws://greenzoneweb.herokuapp.com/') //Формирование сокета к серверу в интернете
 
-// toServerScoket.on("error", (err) =>{
-//   console.log("Caught flash policy server socket error: ")
-//   console.log(err)
-// })
+toServerScoket.on("error", (err) =>{
+  console.log("Caught flash policy server socket error: ")
+  console.log(err)
+})
 
-// toServerScoket.on('open', function open(){
-//   toServerScoket.send('something')
-//   console.log('send something')
-// })
+toServerScoket.on('open', function open(){
+  toServerScoket.send('something')
+  console.log('send something')
+})
 
-// toServerScoket.on('message', function incoming(data){ // когда пришло сообщение от интернет сервера
-//   console.log('server socket data ', data);
+toServerScoket.on('close', function close(event){
+  toServerScoket.send('something', event)
+  console.log('send something', event)
+})
+
+toServerScoket.on('message', function incoming(data){ // когда пришло сообщение от интернет сервера
+  console.log('server socket data ', data);
   
-//   try {
-//     var parsedData = JSON.parse(data) // парсим json в обычный объект
-//     // В объекте хранится топик (destinationName) и данные (payload)
-//     console.log(parsedData)
-//     aedes.publish({
-//             cmd: 'publish',
-//             qos: 2,
-//             topic: parsedData.destinationName,
-//             payload: parsedData.payload.toString(),
-//             retain: false
-//           });
-//   } catch (error) {
-//     console.log('can t parse data')
-//   }
-// })
+  try {
+    var parsedData = JSON.parse(data) // парсим json в обычный объект
+    // В объекте хранится топик (destinationName) и данные (payload)
+    console.log(parsedData)
+    aedes.publish({
+            cmd: 'publish',
+            qos: 2,
+            topic: parsedData.destinationName,
+            payload: parsedData.payload.toString(),
+            retain: false
+          });
+  } catch (error) {
+    console.log('can t parse data')
+  }
+})
 
 
 
@@ -106,7 +111,8 @@ aedes.on('publish', function (packet, client) { //Когда кто-то пуб�
         destinationName: packet.topic, 
         payload: packet.payload.toString()
     }
-    // toServerScoket.send(JSON.stringify(dataBuffer)) //данные отправляем через веб сокет на сервер в интернете
+
+    toServerScoket.send(JSON.stringify(dataBuffer)) //данные отправляем через веб сокет на сервер в интернете
     
     // console.log('message from client', client.id)
 
