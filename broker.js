@@ -1,68 +1,15 @@
 'use strict'
 const express = require('express')
 const app = express()
-
 const aedes = require('aedes')() //для MQTT
 const server = require('net').createServer(aedes.handle)
 const httpServer = require('http').createServer()
-const WebSocket = require('ws') //веб сокеты для связи с сервером в интернете
 const ws = require('websocket-stream') // нужно для работы aedes с MQTT
-const { Console } = require('console')
-// const { trace } = require('console')
+
 const port = 1883
 const wsPort = 8888
 
-// bodyParser = require('body-parser');
-
-// support parsing of application/json type post data
-// app.use(bodyParser.json());
-
-//support parsing of application/x-www-form-urlencoded post data
-// app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static('client/dist'));
-
-
-//----------- Связь с интернет сервером --------------
-//----------------------------------------------------
-
-  // 'ws://localhost:3000'
-const toServerScoket = new WebSocket('ws://greenzoneweb.herokuapp.com/') //Формирование сокета к серверу в интернете
-
-toServerScoket.on("error", (err) =>{
-  console.log("Caught flash policy server socket error: ")
-  console.log(err)
-})
-
-toServerScoket.on('open', function open(){
-  toServerScoket.send('something')
-  console.log('send something')
-})
-
-toServerScoket.on('close', function close(event){
-  toServerScoket.send('something', event)
-  console.log('send something', event)
-})
-
-toServerScoket.on('message', function incoming(data){ // когда пришло сообщение от интернет сервера
-  console.log('server socket data ', data);
-  
-  try {
-    var parsedData = JSON.parse(data) // парсим json в обычный объект
-    // В объекте хранится топик (destinationName) и данные (payload)
-    console.log(parsedData)
-    aedes.publish({
-            cmd: 'publish',
-            qos: 2,
-            topic: parsedData.destinationName,
-            payload: parsedData.payload.toString(),
-            retain: false
-          });
-  } catch (error) {
-    console.log('can t parse data')
-  }
-})
-
-
 
 
 server.listen(port, function () {
@@ -76,6 +23,25 @@ app.listen(3000, ()=>{
 app.get('/', (req, res)=>{
   res.sendFile(__dirname + "/index.html")
   // res.send('hello my dear')
+})
+
+app.get('/api/user-devices', (req, res)=>{
+  //вытаскиваем с бд список айдишников устройств, передаем на клиент
+  
+  var obj = {
+    devices: [
+      "L234",
+      "L323",
+      "L004"
+    ]
+  }
+
+  res.json(obj)
+})
+
+app.get('/user', (req, res)=>{
+  //отправляем инфу о юзере
+  
 })
 
 //----------MQTT------------
@@ -95,27 +61,17 @@ aedes.on('connectionError', function (client, err) {
   console.log('client error', client, err.message, err.stack)
 })
 
-aedes.on('publish', function (packet, client) { //Когда кто-то публикует данные в какой-то топик
+//--- Когда кто-то публикует данные в какой-то топик ---
+aedes.on('publish', function (packet, client) { 
   if (client) {
-    // console.log(packet)
-
-
-    //-------- по сути не нужно --------
-    if (packet.payload.toString() != '') { //если поле данных не пустое
-      console.log(packet.payload.toString())
-    }
-    //-------- конец не нужного ------
-
-
-    var dataBuffer = { // формируем объект для отправки данных в интернет
-        destinationName: packet.topic, 
-        payload: packet.payload.toString()
-    }
-
-    toServerScoket.send(JSON.stringify(dataBuffer)) //данные отправляем через веб сокет на сервер в интернете
+    console.log(packet.topic)
+    console.log(packet.payload.toString())
+    // if (packet.topic != '') { //если поле данных не пустое
+      
+    //   console.log(packet.payload.toString())
+    // }
     
-    // console.log('message from client', client.id)
-
+    
   }
 })
 
@@ -127,7 +83,28 @@ aedes.on('subscribe', function (subscriptions, client) { //когда кто-т�
 
 aedes.on('client', function (client) { //когда к брокеру подключается новый клиент
   console.log('new client', client.id)
+  
 })
+
+setInterval(() => {
+  aedes.publish({
+    cmd: 'publish',
+    qos: 2,
+    topic: 'petya@example.com/logs',
+    payload: new Buffer(`L004 Unlock: ${new Date()}`),
+    retain: false
+  });
+  console.log('interval')
+}, 2000);
+
+// function getUser(){
+
+// }
+
+// function getDevices(){
+
+// }
+
 
 // aedes.subscribe('outTopic', function(packet, cb) {
 //   console.log('Published', packet.payload.toString());
